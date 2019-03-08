@@ -80,16 +80,27 @@
 #define CONFIG_SYS_MMC_MAX_DEVICE	3
 #define CONFIG_SUPPORT_EMMC_BOOT
 
+/* Ethernet need */
+#ifdef CONFIG_DWC_ETH_QOS
+#define CONFIG_SYS_NONCACHED_MEMORY	(1 * SZ_1M)	/* 1M */
+#define CONFIG_SERVERIP                 192.168.1.1
+#define CONFIG_BOOTP_SERVERIP
+#define CONFIG_SYS_AUTOLOAD		"no"
+#endif
+
 /*****************************************************************************/
 #ifdef CONFIG_DISTRO_DEFAULTS
 /*****************************************************************************/
 
 #if !defined(CONFIG_SPL_BUILD)
 
+
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
 	func(MMC, mmc, 0) \
-	func(MMC, mmc, 2)
+	func(MMC, mmc, 2) \
+	func(PXE, pxe, na)
+
 /*
  * bootcmd for stm32mp1:
  * for serial/usb: execute the stm32prog command
@@ -128,7 +139,8 @@
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
 	STM32MP_BOOTCMD \
-	BOOTENV
+	BOOTENV \
+	"boot_net_usb_start=true\0"
 
 #endif /* ifndef CONFIG_SPL_BUILD */
 #endif /* ifdef CONFIG_DISTRO_DEFAULTS*/
