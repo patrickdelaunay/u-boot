@@ -181,7 +181,10 @@
 
 &uart4_pins_a {
 	u-boot,dm-pre-reloc;
-	pins {
+	pins1 {
+		u-boot,dm-pre-reloc;
+	};
+	pins2 {
 		u-boot,dm-pre-reloc;
 	};
 };
