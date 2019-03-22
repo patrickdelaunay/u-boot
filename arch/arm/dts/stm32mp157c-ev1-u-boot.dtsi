@@ -13,6 +13,7 @@
 		pinctrl0 = &pinctrl;
 		pinctrl1 = &pinctrl_z;
 		spi0 = &qspi;
+		usb0 = &usbotg_hs;
 	};
 };
 
