@@ -94,6 +94,9 @@
 
 #if !defined(CONFIG_SPL_BUILD)
 
+/* NAND support */
+#define CONFIG_SYS_NAND_ONFI_DETECTION
+#define CONFIG_SYS_MAX_NAND_DEVICE	1
 
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
