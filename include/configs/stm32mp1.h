@@ -70,6 +70,11 @@
 #define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 
+/* SPI FLASH support */
+#if defined(CONFIG_SPL_BUILD)
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x80000
+#endif
+
 /* Ethernet need */
 #ifdef CONFIG_DWC_ETH_QOS
 #define CONFIG_SYS_NONCACHED_MEMORY	(1 * SZ_1M)	/* 1M */
