@@ -71,6 +71,36 @@ static int stmfx_write(struct udevice *dev, uint offset, unsigned int val)
 	return dm_i2c_reg_write(dev_get_parent(dev), offset, val);
 }
 
+static int stmfx_conf_set_pupd(struct udevice *dev,
+			       unsigned int pin, u32 pupd)
+{
+	u8 reg = STMFX_REG_GPIO_PUPD + get_reg(pin);
+	u32 mask = get_mask(pin);
+	int ret;
+
+	ret = stmfx_read(dev, reg);
+	if (ret < 0)
+		return ret;
+	ret = (ret & ~mask) | (pupd ? mask : 0);
+
+	return stmfx_write(dev, reg, ret);
+}
+
+static int stmfx_conf_set_type(struct udevice *dev,
+			       unsigned int pin, u32 type)
+{
+	u8 reg = STMFX_REG_GPIO_TYPE + get_reg(pin);
+	u32 mask = get_mask(pin);
+	int ret;
+
+	ret = stmfx_read(dev, reg);
+	if (ret < 0)
+		return ret;
+	ret = (ret & ~mask) | (type ? mask : 0);
+
+	return stmfx_write(dev, reg, ret);
+}
+
 static int stmfx_gpio_get(struct udevice *dev, unsigned int offset)
 {
 	u32 reg = STMFX_REG_GPIO_STATE + get_reg(offset);
@@ -138,6 +168,42 @@ static int stmfx_gpio_direction_output(struct udevice *dev,
 	return stmfx_write(dev, reg, ret | mask);
 }
 
+static int stmfx_gpio_set_dir_flags(struct udevice *dev, unsigned int offset,
+				    ulong flags)
+{
+	int ret = -ENOTSUPP;
+
+	if (flags & GPIOD_IS_OUT) {
+		if (flags & GPIOD_OPEN_DRAIN)
+			ret = stmfx_conf_set_type(dev, offset, 0);
+		else if (flags & GPIOD_OPEN_DRAIN) 
+			return -ENOTSUPP;
+		else
+			/* PUSH-PULL */
+			ret = stmfx_conf_set_type(dev, offset, 1);
+		stmfx_gpio_direction_output(dev, offset,
+					    GPIOD_FLAGS_OUTPUT(flags));
+	} else if (flags & GPIOD_IS_IN) {
+		ret = stmfx_gpio_direction_input(dev, offset);
+		if (ret)
+			return ret;
+		if (flags & GPIOD_PULL_UP) {
+			ret = stmfx_conf_set_type(dev, offset, 1);
+			if (ret)
+				return ret;
+			ret = stmfx_conf_set_pupd(dev, offset, 1);
+		}
+		else if (flags & GPIOD_PULL_DOWN) {
+			ret = stmfx_conf_set_type(dev, offset, 1);
+			if (ret)
+				return ret;
+			ret = stmfx_conf_set_pupd(dev, offset, 0);
+		}
+	}
+
+	return ret;
+}
+
 static int stmfx_gpio_probe(struct udevice *dev)
 {
 	struct gpio_dev_priv *uc_priv = dev_get_uclass_priv(dev);
@@ -166,6 +232,7 @@ static const struct dm_gpio_ops stmfx_gpio_ops = {
 	.get_function = stmfx_gpio_get_function,
 	.direction_input = stmfx_gpio_direction_input,
 	.direction_output = stmfx_gpio_direction_output,
+	.set_dir_flags = stmfx_gpio_set_dir_flags,
 };
 
 U_BOOT_DRIVER(stmfx_gpio) = {
@@ -187,36 +254,6 @@ static const struct pinconf_param stmfx_pinctrl_conf_params[] = {
 	{ "output-low", PIN_CONFIG_OUTPUT, 0 },
 };
 
-static int stmfx_pinctrl_set_pupd(struct udevice *dev,
-				  unsigned int pin, u32 pupd)
-{
-	u8 reg = STMFX_REG_GPIO_PUPD + get_reg(pin);
-	u32 mask = get_mask(pin);
-	int ret;
-
-	ret = stmfx_read(dev, reg);
-	if (ret < 0)
-		return ret;
-	ret = (ret & ~mask) | (pupd ? mask : 0);
-
-	return stmfx_write(dev, reg, ret);
-}
-
-static int stmfx_pinctrl_set_type(struct udevice *dev,
-				  unsigned int pin, u32 type)
-{
-	u8 reg = STMFX_REG_GPIO_TYPE + get_reg(pin);
-	u32 mask = get_mask(pin);
-	int ret;
-
-	ret = stmfx_read(dev, reg);
-	if (ret < 0)
-		return ret;
-	ret = (ret & ~mask) | (type ? mask : 0);
-
-	return stmfx_write(dev, reg, ret);
-}
-
 static int stmfx_pinctrl_conf_set(struct udevice *dev, unsigned int pin,
 				  unsigned int param, unsigned int arg)
 {
@@ -232,22 +269,22 @@ static int stmfx_pinctrl_conf_set(struct udevice *dev, unsigned int pin,
 	case PIN_CONFIG_BIAS_PULL_PIN_DEFAULT:
 	case PIN_CONFIG_BIAS_DISABLE:
 	case PIN_CONFIG_DRIVE_PUSH_PULL:
-		ret = stmfx_pinctrl_set_type(dev, pin, 0);
+		ret = stmfx_conf_set_type(dev, pin, 0);
 		break;
 	case PIN_CONFIG_BIAS_PULL_DOWN:
-		ret = stmfx_pinctrl_set_type(dev, pin, 1);
+		ret = stmfx_conf_set_type(dev, pin, 1);
 		if (ret)
 			return ret;
-		ret = stmfx_pinctrl_set_pupd(dev, pin, 0);
+		ret = stmfx_conf_set_pupd(dev, pin, 0);
 		break;
 	case PIN_CONFIG_BIAS_PULL_UP:
-		ret = stmfx_pinctrl_set_type(dev, pin, 1);
+		ret = stmfx_conf_set_type(dev, pin, 1);
 		if (ret)
 			return ret;
-		ret = stmfx_pinctrl_set_pupd(dev, pin, 1);
+		ret = stmfx_conf_set_pupd(dev, pin, 1);
 		break;
 	case PIN_CONFIG_DRIVE_OPEN_DRAIN:
-		ret = stmfx_pinctrl_set_type(dev, pin, 1);
+		ret = stmfx_conf_set_type(dev, pin, 1);
 		break;
 	case PIN_CONFIG_OUTPUT:
 		ret = stmfx_gpio_direction_output(plat->gpio, pin, arg);
