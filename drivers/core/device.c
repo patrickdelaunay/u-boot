@@ -389,8 +389,11 @@ int device_probe(struct udevice *dev)
 	 * continue regardless of the result of pinctrl. Don't process pinctrl
 	 * settings for pinctrl devices since the device may not yet be
 	 * probed.
+	 * Don't process power domain to prevent probe of pinctrol uclass
+	 * (which would result in unbind error after dev_power_domain_off call).
 	 */
-	if (dev->parent && device_get_uclass_id(dev) != UCLASS_PINCTRL)
+	if (dev->parent && device_get_uclass_id(dev) != UCLASS_PINCTRL &&
+	    device_get_uclass_id(dev) != UCLASS_POWER_DOMAIN)
 		pinctrl_select_state(dev, "default");
 
 	if (CONFIG_IS_ENABLED(POWER_DOMAIN) && dev->parent &&
