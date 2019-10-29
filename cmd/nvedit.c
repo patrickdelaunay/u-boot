@@ -1250,7 +1250,7 @@ static int do_env_info(cmd_tbl_t *cmdtp, int flag,
 
 	/* evaluate whether environment can be persisted */
 	if (eval_flags & ENV_INFO_IS_PERSISTED) {
-#if defined(CONFIG_CMD_SAVEENV) && !defined(CONFIG_ENV_IS_NOWHERE)
+#if defined(CONFIG_CMD_SAVEENV) && defined(ENV_IS_IN_DEVICE)
 		if (!quiet)
 			printf("Environment can be persisted\n");
 		eval_results |= ENV_INFO_IS_PERSISTED;
