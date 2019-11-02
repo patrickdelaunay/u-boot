@@ -549,7 +549,18 @@ config ENV_VARS_UBOOT_RUNTIME_CONFIG
 	  run-time determined information about the hardware to the
 	  environment.  These will be named board_name, board_rev.
 
+config SPL_ENV_VARS
+	string "list of keept variables in SPL/TPL default enviroment"
+	default "soc,cpu"
+	help
+		List of variables, coma separated, included in the default
+		enviromnent in SPL and TPL.
+		It is used to reduce the size impact of enviroement in SPL/TPL
+		None variable are included when the option is empty "".
+		The filtre is deactivated when option is "*".
+
 if SPL_ENV_SUPPORT
+
 config SPL_ENV_IS_NOWHERE
 	bool "SPL Environment is not stored"
 	default y if ENV_IS_NOWHERE
