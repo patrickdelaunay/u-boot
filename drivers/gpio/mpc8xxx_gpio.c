@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2016
@@ -144,6 +145,50 @@ static int mpc8xxx_gpio_get_value(struct udevice *dev, uint gpio)
 	return !!mpc8xxx_gpio_get_val(data->base, gpio_mask(gpio));
 }
 
+static int mpc8xxx_gpio_set_dir_flags(struct udevice *dev, unsigned int gpio,
+				      ulong flags)
+{
+	struct mpc8xxx_gpio_data *data = dev_get_priv(dev);
+
+	int ret = -ENOTSUPP;
+
+	if (flags & GPIOD_IS_OUT) {
+		if (flags & GPIOD_OPEN_DRAIN)
+			mpc8xxx_gpio_open_drain_on(data->base, gpio_mask(gpio));
+		else
+			mpc8xxx_gpio_open_drain_on(data->base, gpio_mask(gpio));
+		ret = mpc8xxx_gpio_direction_output(dev, gpio,
+						    GPIOD_FLAGS_OUTPUT(flags));
+	} else if (flags & GPIOD_IS_IN) {
+		ret = mpc8xxx_gpio_direction_input(dev, gpio);
+	}
+
+	return ret;
+}
+
+static int mpc8xxx_gpio_get_dir_flags(struct udevice *dev, unsigned int gpio,
+				      ulong *flags)
+{
+	struct mpc8xxx_gpio_data *data = dev_get_priv(dev);
+	ulong dir_flags = 0;
+
+	if (mpc8xxx_gpio_get_dir(data->base, gpio_mask(gpio))) {
+		dir_flags |= GPIOD_IS_OUT;
+		/* use shadowed value */
+		if (data->dat_shadow & gpio_mask(gpio)) 
+			dir_flags |= GPIOD_IS_OUT_ACTIVE;
+	} else {
+		dir_flags |= GPIOD_IS_IN;
+	}
+
+	if (mpc8xxx_gpio_open_drain_val(data->base, gpio_mask(gpio)))
+		dir_flags |= GPIOD_OPEN_DRAIN;
+
+	*flags= dir_flags;
+
+	return 0;
+}
+
 static int mpc8xxx_gpio_get_function(struct udevice *dev, uint gpio)
 {
 	struct mpc8xxx_gpio_data *data = dev_get_priv(dev);
@@ -220,7 +265,10 @@ static const struct dm_gpio_ops gpio_mpc8xxx_ops = {
 	.direction_output	= mpc8xxx_gpio_direction_output,
 	.get_value		= mpc8xxx_gpio_get_value,
 	.set_value		= mpc8xxx_gpio_set_value,
+	.set_dir_flags 		= mpc8xxx_gpio_set_dir_flags,
+	.get_dir_flags 		= mpc8xxx_gpio_get_dir_flags,
 	.get_function		= mpc8xxx_gpio_get_function,
+
 };
 
 static const struct udevice_id mpc8xxx_gpio_ids[] = {
