@@ -107,7 +107,7 @@ elif options.test:
 # Called from git with a patch filename as argument
 # Printout a list of additional CC recipients for this patch
 elif options.cc_cmd:
-    fd = open(options.cc_cmd, 'r')
+    fd = open(options.cc_cmd, 'r', encoding='utf-8')
     re_line = re.compile('(\S*) (.*)')
     for line in fd.readlines():
         match = re_line.match(line)
