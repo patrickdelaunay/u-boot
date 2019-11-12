@@ -379,7 +379,11 @@ int clk_disable(struct clk *clk);
  *		by clk_get_bulk().
  * @return zero on success, or -ve error code.
  */
+ #if CONFIG_IS_ENABLED(CLK)
 int clk_disable_bulk(struct clk_bulk *bulk);
+#else
+inline int clk_disable_bulk(struct clk_bulk *bulk) { return 0; }
+#endif
 
 /**
  * clk_is_match - check if two clk's point to the same hardware clock
